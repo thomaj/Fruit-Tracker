@@ -1,8 +1,8 @@
 function result = circularNeighbors(img, x, y, radius)
     result = zeros(0,5);
-    startRow = max([floor(y - radius), 0]);
+    startRow = max([floor(y - radius), 1]);
     endRow =  min([ceil(y + radius), size(img, 1)]);
-    startColumn = max([floor(x - radius), 0]);
+    startColumn = max([floor(x - radius), 1]);
     endColumn = min([ceil(x + radius), size(img, 2)]);
     
     for r = startRow:endRow
