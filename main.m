@@ -8,15 +8,17 @@ firstFrame = double(readFrame(v));
 whos firstFrame
 
 
-
+% For keeping track of positions of object and displaying the lines
 lines = zeros(0, 2);
 
 % Mean-shift tracking
-EPSILON = 3.0;
+EPSILON = 5.0;
 MAX_ITERATIONS = 10;
 
 % Adaptaive Scale
 DELTA_H_COEF = 0.1;
+radiuses = [0, 1, -1];
+
 radius = 40;
 numberOfBins = 16;
 startX = 354;%671;
@@ -48,44 +50,62 @@ while hasFrame(v)
     startPosY = posY;
     
     % Now perform mean-shift tracking to see where the target is now
-    dist = 10;
-    iteration = 0;
-    tic
-    while (dist > EPSILON && iteration <= MAX_ITERATIONS)
-        X_currentFrame = circularNeighbors(currentFrame, posX, posY, radius);
-        p_test = colorHistogram(X_currentFrame, numberOfBins, posX, posY, radius);
-        w = meanshiftWeights(X_currentFrame, q_model, p_test, numberOfBins);
-
-        weightedPosX = X_currentFrame(:, 1)' * w;
-        weightedPosY = X_currentFrame(:, 2)' * w;
-        sumOfWeights = sum(w);
+    % This uses adaptive scale to track the size of the object
+    bestScore = -100;
+    bestRadius = radius;
+    for i = 1:size(radiuses, 2)
+        r = radius + radius*radiuses(i)*DELTA_H_COEF;
+        %tic
         
-        posXNext = weightedPosX / sumOfWeights;
-        posYNext = weightedPosY / sumOfWeights;
+        dist = 100;
+        iteration = 0;
+        while (dist > EPSILON && iteration <= MAX_ITERATIONS)
+            X_currentFrame = circularNeighbors(currentFrame, posX, posY, r);
+            p_test = colorHistogram(X_currentFrame, numberOfBins, posX, posY, r);
+            w = meanshiftWeights(X_currentFrame, q_model, p_test, numberOfBins);
 
-        % Determine how far the point center of circle moved
-        dist = distance([posXNext posYNext],[posX posY]);
+            weightedPosX = X_currentFrame(:, 1)' * w;
+            weightedPosY = X_currentFrame(:, 2)' * w;
+            sumOfWeights = sum(w);
 
-        posX = posXNext;
-        posY = posYNext;
+            posXNext = weightedPosX / sumOfWeights;
+            posYNext = weightedPosY / sumOfWeights;
 
-        iteration = iteration + 1;
-        %fprintf('iteration: %d\n', iteration);
+            % Determine how far the point center of circle moved
+            dist = distance([posXNext posYNext],[posX posY]);
+
+            posX = posXNext;
+            posY = posYNext;
+
+            iteration = iteration + 1;
+            %fprintf('iteration: %d\n', iteration);
+        end
+        %toc
+        
+        % Determine if this radius was a better fit based on the
+        % bhattacharyya score
+        score = bhattacharyyaCoefficient(q_model, p_test);
+        if (score > bestScore) 
+            bestScore = score;
+            bestRadius = r;
+        end
+        
     end
-    toc
+    % set up for the next iteration
+    radius = max([bestRadius, 10]); % THreshold it so it never disappears
     
     % Add the new position to the lines
     lines(end + 1, :) = [posX posY];
     
     
+    
     imagesc(uint8(currentFrame));   % Draw image
     % Draw the circle and the path
     hold on;
-    viscircles([posX, posY],radius);
+    viscircles([posX, posY],bestRadius);
     line(lines(:, 1), lines(:, 2), 'Color', 'b', 'Linewidth', 2);
     hold off;
     drawnow;
-    %pause(0.1);
     
     % We have now tracked the target, so move to next frame
     % NOTE: will only do following line if we update the q_model
