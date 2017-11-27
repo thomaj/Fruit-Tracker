@@ -10,7 +10,12 @@ function result = circularNeighbors(img, x, y, radius)
             if (((c-x)^2 + (r-y)^2) < radius^2)
                 r = round(r);
                 c = round(c);
-                result(end + 1, :) = [c, r, img(r,c,1), img(r,c,2), img(r,c,3)];
+                % Need to max the image values here,
+                % Getting over 256 in doubles for some reason
+                img1 = max([min([img(r,c,1), 255.0]), 0.1]);
+                img2 = max([min([img(r,c,2), 255.0]), 0.1]);
+                img3 = max([min([img(r,c,3), 255.0]), 0.1]);
+                result(end + 1, :) = [c, r, img1, img2, img3];
             end
         end
     end

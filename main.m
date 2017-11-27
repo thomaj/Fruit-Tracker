@@ -3,8 +3,10 @@ VIDEO_FILE = 'Videos/Test_Orange_3.mov';
 
 v = VideoReader(VIDEO_FILE);
 
+RESIZE_SCALE = 0.2;
+
 firstFrame = double(readFrame(v));
-% firstFrame = imresize(firstFrame, 0.4);
+firstFrame = imresize(firstFrame, RESIZE_SCALE);
 whos firstFrame
 
 
@@ -12,18 +14,20 @@ whos firstFrame
 lines = zeros(0, 2);
 
 % Mean-shift tracking
-EPSILON = 5.0;
-MAX_ITERATIONS = 10;
+EPSILON = 2.0;
+MAX_ITERATIONS = 20;
 
-% Adaptaive Scale
+% Adaptaive Scale Variables
 DELTA_H_COEF = 0.1;
+GAMMA = 0.5;
 radiuses = [0, 1, -1];
 
-radius = 40;
+radius = 10;
 numberOfBins = 16;
-startX = 354;%671;
-startY = 627;%343;
+startX = 71;%176;%354;72;
+startY = 126;%313;%627;122;
 
+axis image;
 imagesc(uint8(firstFrame));
 hold on;
 viscircles([startX, startY],radius);
@@ -40,8 +44,12 @@ posY = startY;
 previousFrame = firstFrame;
 h_prev = radius;
 lines(end + 1, :) = [posX posY];
+
+% Stats variables
+iterations = zeros(1);
 while hasFrame(v)
     currentFrame = double(readFrame(v));
+    currentFrame = imresize(currentFrame, RESIZE_SCALE);
     
     % Perform background subtraction
     %currentFrame = checkAgainstBackgroundModel(currentFrame, backgroundModel);
@@ -63,6 +71,9 @@ while hasFrame(v)
             X_currentFrame = circularNeighbors(currentFrame, posX, posY, r);
             p_test = colorHistogram(X_currentFrame, numberOfBins, posX, posY, r);
             w = meanshiftWeights(X_currentFrame, q_model, p_test, numberOfBins);
+            if (sum(w) == 0)
+                w
+            end
 
             weightedPosX = X_currentFrame(:, 1)' * w;
             weightedPosY = X_currentFrame(:, 2)' * w;
@@ -78,8 +89,8 @@ while hasFrame(v)
             posY = posYNext;
 
             iteration = iteration + 1;
-            %fprintf('iteration: %d\n', iteration);
         end
+        iterations(end+1) = iteration;
         %toc
         
         % Determine if this radius was a better fit based on the
@@ -91,8 +102,10 @@ while hasFrame(v)
         end
         
     end
-    % set up for the next iteration
-    radius = max([bestRadius, 10]); % THreshold it so it never disappears
+    % set up the radius for the next iteration
+    radius = GAMMA*bestRadius + (1-GAMMA)*radius;
+    radius
+    radius = max([radius, 10]); % THreshold it so it never disappears
     
     % Add the new position to the lines
     lines(end + 1, :) = [posX posY];
@@ -113,6 +126,8 @@ while hasFrame(v)
     
     
 end
+
+fprintf('Average number of iterations: %f\n', mean(iterations));
 
    
     
