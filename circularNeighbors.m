@@ -10,8 +10,8 @@ function result = circularNeighbors(img, x, y, radius)
             if (((c-x)^2 + (r-y)^2) < radius^2)
                 r = round(r);
                 c = round(c);
-                % Need to max the image values here,
-                % Getting over 256 in doubles for some reason
+                % Bicubic interpolation can provide values outside original
+                % range, so need to threshold just to be sure
                 img1 = max([min([img(r,c,1), 255.0]), 0.1]);
                 img2 = max([min([img(r,c,2), 255.0]), 0.1]);
                 img3 = max([min([img(r,c,3), 255.0]), 0.1]);

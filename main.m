@@ -22,10 +22,11 @@ DELTA_H_COEF = 0.1;
 GAMMA = 0.5;
 radiuses = [0, 1, -1];
 
-radius = 10;
+% Tracking Window Variables
+radius = 40*RESIZE_SCALE;
 numberOfBins = 16;
-startX = 71;%176;%354;72;
-startY = 126;%313;%627;122;
+startX = 353*RESIZE_SCALE;
+startY = 625*RESIZE_SCALE;
 
 axis image;
 imagesc(uint8(firstFrame));
@@ -43,12 +44,13 @@ posY = startY;
 
 previousFrame = firstFrame;
 h_prev = radius;
-lines(end + 1, :) = [posX posY];
+lines(end + 1, :) = [posX/RESIZE_SCALE posY/RESIZE_SCALE];
 
 % Stats variables
 iterations = zeros(1);
 while hasFrame(v)
     currentFrame = double(readFrame(v));
+    realFrame = currentFrame;   % This is so we can display it in full resolution
     currentFrame = imresize(currentFrame, RESIZE_SCALE);
     
     % Perform background subtraction
@@ -63,7 +65,6 @@ while hasFrame(v)
     bestRadius = radius;
     for i = 1:size(radiuses, 2)
         r = radius + radius*radiuses(i)*DELTA_H_COEF;
-        %tic
         
         dist = 100;
         iteration = 0;
@@ -91,7 +92,6 @@ while hasFrame(v)
             iteration = iteration + 1;
         end
         iterations(end+1) = iteration;
-        %toc
         
         % Determine if this radius was a better fit based on the
         % bhattacharyya score
@@ -104,19 +104,18 @@ while hasFrame(v)
     end
     % set up the radius for the next iteration
     radius = GAMMA*bestRadius + (1-GAMMA)*radius;
-    radius
-    radius = max([radius, 10]); % THreshold it so it never disappears
+    radius = max([radius, 10]); % Threshold it so it never disappears
     
-    % Add the new position to the lines
-    lines(end + 1, :) = [posX posY];
-    
+    % Add the new position to the lines to be displayed
+    lines(end + 1, :) = [posX/RESIZE_SCALE posY/RESIZE_SCALE];
     
     
-    imagesc(uint8(currentFrame));   % Draw image
+    
+    imagesc(uint8(realFrame));   % Draw image
     % Draw the circle and the path
     hold on;
-    viscircles([posX, posY],bestRadius);
-    line(lines(:, 1), lines(:, 2), 'Color', 'b', 'Linewidth', 2);
+    %viscircles([posX/RESIZE_SCALE, posY/RESIZE_SCALE],bestRadius);
+    line(lines(:, 1), lines(:, 2), 'Color', 'b', 'Linewidth', radius/5);
     hold off;
     drawnow;
     

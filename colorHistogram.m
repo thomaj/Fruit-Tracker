@@ -11,9 +11,6 @@ function hist = colorHistogram(X, bins, x, y, h)
            k = 0;
        end
        bin = floor(X(row, 3:5)/divisor) + 1;
-       if (bin(2) < 1)
-           bin
-       end
        hist(bin(1), bin(2), bin(3)) = hist(bin(1), bin(2), bin(3)) + k;
        
     end
