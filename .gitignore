@@ -1,3 +1,4 @@
-.doc
-.docx
-.m~
+*.doc
+*.docx
+*.m~
+Videos/
